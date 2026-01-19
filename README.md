@@ -2,6 +2,8 @@
 
 🛡️ **AI-Powered Nigerian Naira Counterfeit Detection App**
 
+> ⚠️ **DEMO VERSION**: This app currently uses **simulated analysis** for demonstration purposes. Real AI integration (Claude Vision API) is required for actual currency verification. See [AI Integration Guide](AI_INTEGRATION_REQUIRED.md) for details.
+
 ## Overview
 
 NairaGuard is a production-ready, single-file web application designed to help Nigerians identify counterfeit currency using advanced image analysis and security feature verification.
