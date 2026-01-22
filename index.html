@@ -7,7 +7,185 @@
     <title>NairaGuard - Counterfeit Currency Detector</title>
     <meta name="description"
         content="AI-powered Nigerian Naira counterfeit detection app. Scan banknotes to verify authenticity using advanced security feature analysis.">
+
+    <!-- Paystack Inline JS -->
+    <script src="https://js.paystack.co/v1/inline.js"></script>
+
     <style>
+        /* Payment & Credits Styles */
+        .credits-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+            padding: 0.75rem 1.5rem;
+            border-radius: 2rem;
+            font-weight: 600;
+            margin-top: 1rem;
+            box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
+        }
+
+        .credits-badge.low {
+            background: linear-gradient(135deg, var(--danger), #b91c1c);
+        }
+
+        .credits-number {
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .buy-credits-btn {
+            background: linear-gradient(135deg, var(--secondary), #d97706);
+            color: white;
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-left: 1rem;
+        }
+
+        .buy-credits-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(245, 158, 11, 0.4);
+        }
+
+        /* Payment Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border-radius: 1rem;
+            padding: 2rem;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+            border: 1px solid var(--border);
+            animation: modalSlideIn 0.3s ease;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.5rem;
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: var(--text-light);
+        }
+
+        .packages-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .package-card {
+            background: rgba(148, 163, 184, 0.1);
+            border: 2px solid var(--border);
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .package-card:hover {
+            border-color: var(--primary-light);
+            background: rgba(20, 184, 166, 0.1);
+            transform: translateY(-4px);
+        }
+
+        .package-card.selected {
+            border-color: var(--primary-light);
+            background: rgba(20, 184, 166, 0.2);
+            box-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
+        }
+
+        .package-badge {
+            position: absolute;
+            top: -10px;
+            right: -10px;
+            background: var(--secondary);
+            color: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: 1rem;
+            font-size: 0.7rem;
+            font-weight: 700;
+        }
+
+        .package-scans {
+            font-size: 2rem;
+            font-weight: 900;
+            color: var(--primary-light);
+            margin-bottom: 0.5rem;
+        }
+
+        .package-price {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: var(--text-light);
+            margin-bottom: 0.25rem;
+        }
+
+        .package-original {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            text-decoration: line-through;
+        }
+
+        .package-per-scan {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+
         * {
             margin: 0;
             padding: 0;
@@ -531,7 +709,108 @@
                 <strong>⚠️ Demo Version:</strong> This app currently uses simulated analysis for demonstration purposes.
                 Real AI integration required for actual currency verification. See README for details.
             </div>
+
+            <!-- Credits Display -->
+            <div class="credits-badge" id="credits-badge">
+                <span>💳 Scan Credits:</span>
+                <span class="credits-number" id="credits-count">0</span>
+                <button class="buy-credits-btn" id="buy-credits-btn">➕ Buy More</button>
+            </div>
         </header>
+
+        <!-- Payment Modal -->
+        <div class="modal" id="payment-modal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2>💳 Purchase Scan Credits</h2>
+                    <button class="modal-close" id="close-modal">✕</button>
+                </div>
+
+                <p style="color: var(--text-muted); margin-bottom: 1.5rem;">
+                    Choose a package to purchase scan credits. Each scan uses 1 credit.
+                </p>
+
+                <div class="packages-grid">
+                    <!-- 1 Scan Package -->
+                    <div class="package-card" data-scans="1" data-price="10000">
+                        <div class="package-scans">1</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Scan</div>
+                        <div class="package-price">₦100</div>
+                        <div class="package-per-scan">₦100/scan</div>
+                    </div>
+
+                    <!-- 5 Scans Package -->
+                    <div class="package-card" data-scans="5" data-price="45000">
+                        <div class="package-badge">10% OFF</div>
+                        <div class="package-scans">5</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Scans</div>
+                        <div class="package-price">₦450</div>
+                        <div class="package-original">₦500</div>
+                        <div class="package-per-scan">₦90/scan</div>
+                    </div>
+
+                    <!-- 10 Scans Package -->
+                    <div class="package-card" data-scans="10" data-price="80000">
+                        <div class="package-badge">20% OFF</div>
+                        <div class="package-scans">10</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Scans</div>
+                        <div class="package-price">₦800</div>
+                        <div class="package-original">₦1,000</div>
+                        <div class="package-per-scan">₦80/scan</div>
+                    </div>
+
+                    <!-- 20 Scans Package -->
+                    <div class="package-card" data-scans="20" data-price="140000">
+                        <div class="package-badge">30% OFF</div>
+                        <div class="package-scans">20</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Scans</div>
+                        <div class="package-price">₦1,400</div>
+                        <div class="package-original">₦2,000</div>
+                        <div class="package-per-scan">₦70/scan</div>
+                    </div>
+
+                    <!-- 50 Scans Package -->
+                    <div class="package-card" data-scans="50" data-price="300000">
+                        <div class="package-badge">40% OFF</div>
+                        <div class="package-scans">50</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Scans</div>
+                        <div class="package-price">₦3,000</div>
+                        <div class="package-original">₦5,000</div>
+                        <div class="package-per-scan">₦60/scan</div>
+                    </div>
+
+                    <!-- 100 Scans Package -->
+                    <div class="package-card" data-scans="100" data-price="500000">
+                        <div class="package-badge">50% OFF</div>
+                        <div class="package-scans">100</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Scans</div>
+                        <div class="package-price">₦5,000</div>
+                        <div class="package-original">₦10,000</div>
+                        <div class="package-per-scan">₦50/scan</div>
+                    </div>
+
+                    <!-- 1000 Scans Package - BEST VALUE -->
+                    <div class="package-card" data-scans="1000" data-price="3000000" style="grid-column: span 2;">
+                        <div class="package-badge" style="background: var(--success);">BEST VALUE 70% OFF</div>
+                        <div class="package-scans" style="font-size: 2.5rem;">1000</div>
+                        <div style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.5rem;">Scans</div>
+                        <div class="package-price" style="font-size: 1.5rem;">₦30,000</div>
+                        <div class="package-original">₦100,000</div>
+                        <div class="package-per-scan" style="color: var(--success); font-weight: 600;">Only ₦30/scan!
+                        </div>
+                    </div>
+                </div>
+
+                <button class="btn btn-primary" id="proceed-payment" style="width: 100%;" disabled>
+                    Select a package to continue
+                </button>
+
+                <div class="alert alert-info" style="margin-top: 1rem;">
+                    <strong>💡 Secure Payment:</strong> Powered by Paystack. Your payment information is encrypted and
+                    secure.
+                </div>
+            </div>
+        </div>
 
         <div class="tabs">
             <button class="tab active" data-tab="scanner">📷 Scanner</button>
@@ -943,7 +1222,11 @@
                     width: { ideal: 1920 },
                     height: { ideal: 1080 }
                 }
-            }
+            },
+            // Paystack Configuration
+            PAYSTACK_PUBLIC_KEY: 'pk_test_YOUR_PAYSTACK_KEY_HERE', // Replace with your actual Paystack public key
+            PAYMENT_CURRENCY: 'NGN',
+            FREE_CREDITS: 1
         };
 
         // Nigerian Naira denominations
@@ -965,7 +1248,8 @@
             currentDenomination: null,
             analysisHistory: [],
             cameraActive: false,
-            flashEnabled: false
+            flashEnabled: false,
+            credits: 0
         };
 
         // ==================== DOM ELEMENTS ====================
@@ -982,7 +1266,15 @@
             snapshotCanvas: document.getElementById('snapshot-canvas'),
             previewImage: document.getElementById('preview-image'),
             loading: document.getElementById('loading'),
-            results: document.getElementById('results')
+            results: document.getElementById('results'),
+            // Payment Elements
+            creditsBadge: document.getElementById('credits-badge'),
+            creditsCount: document.getElementById('credits-count'),
+            buyCreditsBtn: document.getElementById('buy-credits-btn'),
+            paymentModal: document.getElementById('payment-modal'),
+            closeModalBtn: document.getElementById('close-modal'),
+            proceedPaymentBtn: document.getElementById('proceed-payment'),
+            packageCards: document.querySelectorAll('.package-card')
         };
 
         // ==================== UTILITY FUNCTIONS ====================
@@ -1068,6 +1360,124 @@
                 };
                 img.src = imageData;
             });
+        }
+
+        // ==================== PAYMENT & CREDITS SYSTEM ====================
+
+        // Initialize Credits
+        function initCredits() {
+            const savedCredits = localStorage.getItem('nairaguard_credits');
+            state.credits = savedCredits ? parseInt(savedCredits) : CONFIG.FREE_CREDITS;
+            updateCreditsDisplay();
+        }
+
+        // Update Credits Display
+        function updateCreditsDisplay() {
+            if (elements.creditsCount) {
+                elements.creditsCount.textContent = state.credits;
+
+                // Low credit warning
+                if (state.credits < 2) {
+                    elements.creditsBadge.classList.add('low');
+                } else {
+                    elements.creditsBadge.classList.remove('low');
+                }
+            }
+        }
+
+        // Add Credits
+        function addCredits(amount) {
+            state.credits += amount;
+            localStorage.setItem('nairaguard_credits', state.credits);
+            updateCreditsDisplay();
+            showNotification(`✅ Added ${amount} scan credits!`, 'info');
+        }
+
+        // Deduct Credit
+        function deductCredit() {
+            if (state.credits > 0) {
+                state.credits--;
+                localStorage.setItem('nairaguard_credits', state.credits);
+                updateCreditsDisplay();
+                return true;
+            }
+            return false;
+        }
+
+        // Handle Payment Selection
+        let selectedPackage = null;
+
+        function initPaymentSystem() {
+            // Open Modal
+            elements.buyCreditsBtn.addEventListener('click', () => {
+                elements.paymentModal.classList.add('active');
+            });
+
+            // Close Modal
+            elements.closeModalBtn.addEventListener('click', () => {
+                elements.paymentModal.classList.remove('active');
+            });
+
+            // Select Package
+            elements.packageCards.forEach(card => {
+                card.addEventListener('click', () => {
+                    // Remove selection from others
+                    elements.packageCards.forEach(c => c.classList.remove('selected'));
+                    // Select clicked
+                    card.classList.add('selected');
+                    // Enable button
+                    elements.proceedPaymentBtn.disabled = false;
+                    elements.proceedPaymentBtn.textContent = `Pay ₦${parseInt(card.dataset.price) / 100} for ${card.dataset.scans} Scans`;
+
+                    selectedPackage = {
+                        scans: parseInt(card.dataset.scans),
+                        amount: parseInt(card.dataset.price) // Amount in kobo
+                    };
+                });
+            });
+
+            // Proceed to Payment
+            elements.proceedPaymentBtn.addEventListener('click', () => {
+                if (!selectedPackage) return;
+
+                payWithPaystack(selectedPackage);
+            });
+        }
+
+        // Paystack Integration
+        function payWithPaystack(pkg) {
+            const handler = PaystackPop.setup({
+                key: CONFIG.PAYSTACK_PUBLIC_KEY,
+                email: 'user@nairaguard.com', // In production, ask for user email
+                amount: pkg.amount,
+                currency: CONFIG.PAYMENT_CURRENCY,
+                ref: '' + Math.floor((Math.random() * 1000000000) + 1), // Generate a random ref
+                metadata: {
+                    custom_fields: [
+                        {
+                            display_name: "Scan Package",
+                            variable_name: "scan_package",
+                            value: `${pkg.scans} Scans`
+                        }
+                    ]
+                },
+                callback: function (response) {
+                    // Payment successful
+                    addCredits(pkg.scans);
+                    elements.paymentModal.classList.remove('active');
+                    showNotification('🎉 Payment successful! Credits added.', 'info');
+
+                    // Reset selection
+                    selectedPackage = null;
+                    elements.packageCards.forEach(c => c.classList.remove('selected'));
+                    elements.proceedPaymentBtn.disabled = true;
+                    elements.proceedPaymentBtn.textContent = 'Select a package to continue';
+                },
+                onClose: function () {
+                    showNotification('Transaction cancelled', 'warning');
+                }
+            });
+            handler.openIframe();
         }
 
         // Detect denomination from image (basic color analysis)
@@ -1257,6 +1667,15 @@
         elements.analyzeBtn.addEventListener('click', async () => {
             if (!state.capturedImageData) {
                 showNotification('❌ Please capture or upload an image first', 'warning');
+                return;
+            }
+
+            // CHECK CREDITS
+            if (!deductCredit()) {
+                showNotification('⚠️ Insufficient credits! Please purchase more scans.', 'warning');
+                setTimeout(() => {
+                    elements.paymentModal.classList.add('active');
+                }, 1000);
                 return;
             }
 
@@ -1470,6 +1889,8 @@
         // ==================== INITIALIZATION ====================
         document.addEventListener('DOMContentLoaded', () => {
             loadHistory();
+            initCredits();
+            initPaymentSystem();
 
             // Add CSS for animations
             const style = document.createElement('style');
